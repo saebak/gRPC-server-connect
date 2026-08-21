@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: grpc-server-connect
+
+grpc:
+  server:
+    port: 9090
+  client:
+    hello-service:
+      address: static://localhost:9090
+      negotiation-type: plaintext
