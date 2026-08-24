@@ -1,8 +1,8 @@
-package com.portfolio.grpc.upload.server
+package com.saebak.upload.server
 
-import com.portfolio.grpc.upload.FileUploadServiceGrpcKt
-import com.portfolio.grpc.upload.UploadRequest
-import com.portfolio.grpc.upload.UploadResponse
+import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.UploadRequest
+import com.saebak.upload.UploadResponse
 import kotlinx.coroutines.flow.Flow
 import net.devh.boot.grpc.server.service.GrpcService
 import org.springframework.beans.factory.annotation.Value

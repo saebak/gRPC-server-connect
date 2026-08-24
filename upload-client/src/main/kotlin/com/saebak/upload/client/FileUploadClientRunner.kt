@@ -1,9 +1,9 @@
-package com.portfolio.grpc.upload.client
+package com.saebak.upload.client
 
 import com.google.protobuf.ByteString
-import com.portfolio.grpc.upload.FileInfo
-import com.portfolio.grpc.upload.FileUploadServiceGrpcKt
-import com.portfolio.grpc.upload.UploadRequest
+import com.saebak.upload.FileInfo
+import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.UploadRequest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import net.devh.boot.grpc.client.inject.GrpcClient

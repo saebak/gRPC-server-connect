@@ -52,4 +52,4 @@ cd upload-server && ./gradlew.bat bootRun    # 터미널 1
 cd upload-client && ./gradlew.bat bootRun    # 터미널 2 (서버가 뜬 후)
 ```
 
-테스트 결과 원본 XML: `upload-server/build/test-results/test/TEST-com.portfolio.grpc.upload.server.FileUploadServiceImplTest.xml` (빌드 산출물이라 Git에는 포함하지 않음, 로컬에서 `./gradlew test` 실행 시 재생성됨)
+테스트 결과 원본 XML: `upload-server/build/test-results/test/TEST-com.saebak.upload.server.FileUploadServiceImplTest.xml` (빌드 산출물이라 Git에는 포함하지 않음, 로컬에서 `./gradlew test` 실행 시 재생성됨)

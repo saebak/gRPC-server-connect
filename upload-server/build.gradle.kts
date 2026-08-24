@@ -8,7 +8,7 @@ plugins {
     id("com.google.protobuf") version "0.9.4"
 }
 
-group = "com.portfolio"
+group = "com.saebak"
 version = "0.0.1-SNAPSHOT"
 
 java {

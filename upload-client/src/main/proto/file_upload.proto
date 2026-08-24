@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "com.portfolio.grpc.upload";
+option java_package = "com.saebak.upload";
 
 package upload;
 

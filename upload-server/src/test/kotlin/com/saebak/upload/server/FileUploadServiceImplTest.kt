@@ -1,10 +1,10 @@
-package com.portfolio.grpc.upload.server
+package com.saebak.upload.server
 
 import com.google.protobuf.ByteString
-import com.portfolio.grpc.upload.FileInfo
-import com.portfolio.grpc.upload.FileUploadServiceGrpcKt
-import com.portfolio.grpc.upload.UploadRequest
-import com.portfolio.grpc.upload.UploadResponse
+import com.saebak.upload.FileInfo
+import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.UploadRequest
+import com.saebak.upload.UploadResponse
 import io.grpc.ManagedChannel
 import io.grpc.Server
 import io.grpc.inprocess.InProcessChannelBuilder

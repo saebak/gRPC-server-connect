@@ -1,4 +1,4 @@
-package com.portfolio.grpc.upload
+package com.saebak.upload
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

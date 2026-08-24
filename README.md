@@ -29,14 +29,14 @@ gRPC-server-connect/
 ├── upload-server/          # 독립 Gradle 프로젝트 — gRPC 서버
 │   └── src/main/
 │       ├── proto/file_upload.proto
-│       ├── kotlin/com/portfolio/grpc/upload/
+│       ├── kotlin/com/saebak/upload/
 │       │   ├── UploadServerApplication.kt
 │       │   └── server/FileUploadServiceImpl.kt
 │       └── resources/application.yml   (grpc.server.port: 9090)
 └── upload-client/          # 독립 Gradle 프로젝트 — gRPC 클라이언트
     └── src/main/
         ├── proto/file_upload.proto      (upload-server와 동일 파일)
-        ├── kotlin/com/portfolio/grpc/upload/
+        ├── kotlin/com/saebak/upload/
         │   ├── UploadClientApplication.kt
         │   └── client/FileUploadClientRunner.kt
         └── resources/
@@ -80,7 +80,7 @@ cd upload-client
 
 ## 코딩 컨벤션
 
-- **패키지 구조**: `com.portfolio.grpc.upload` 하위에 `server`, `client` 서브패키지로 역할을 분리한다. 도메인이 늘어나면 `com.portfolio.grpc.<domain>` 단위로 프로젝트/패키지를 새로 추가한다.
+- **패키지 구조**: `com.saebak.upload` 하위에 `server`, `client` 서브패키지로 역할을 분리한다. 도메인이 늘어나면 `com.saebak.<domain>` 단위로 프로젝트/패키지를 새로 추가한다.
 - **proto 파일**: 파일명은 서비스 도메인을 그대로 사용(`file_upload.proto`). `option java_multiple_files = true`로 메시지별 파일을 분리 생성하고, `java_package`는 Kotlin 패키지와 동일하게 맞춘다.
 - **stub/서비스 명명**: `.proto`의 `service` 이름은 `XxxService`, 서버 구현체는 `XxxServiceImpl`로 통일한다.
 - **코루틴 우선**: 블로킹/Async stub 대신 `grpc-kotlin-stub`의 코루틴 stub(`suspend fun`, `Flow`)을 기본으로 사용한다.
