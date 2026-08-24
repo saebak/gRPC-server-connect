@@ -5,13 +5,16 @@ import com.portfolio.grpc.upload.UploadRequest
 import com.portfolio.grpc.upload.UploadResponse
 import kotlinx.coroutines.flow.Flow
 import net.devh.boot.grpc.server.service.GrpcService
+import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.io.FileOutputStream
 
 @GrpcService
-class FileUploadServiceImpl : FileUploadServiceGrpcKt.FileUploadServiceCoroutineImplBase() {
+class FileUploadServiceImpl(
+    @Value("\${upload.dir:uploads}") uploadDirPath: String = "uploads",
+) : FileUploadServiceGrpcKt.FileUploadServiceCoroutineImplBase() {
 
-    private val uploadDir = File("uploads").apply { mkdirs() }
+    private val uploadDir = File(uploadDirPath).apply { mkdirs() }
 
     override suspend fun uploadFile(requests: Flow<UploadRequest>): UploadResponse {
         var filename: String? = null
