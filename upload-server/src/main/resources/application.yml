@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: upload-server
+
+grpc:
+  server:
+    port: 9090

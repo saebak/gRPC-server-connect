@@ -1,0 +1,3 @@
+gRPC client streaming demo file.
+This file is read by upload-client, split into chunks, and streamed to upload-server over a single Client Streaming RPC.
+Once the server has received every chunk, it writes the file to disk and returns one UploadResponse.

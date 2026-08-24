@@ -1,11 +1,11 @@
-package com.portfolio.grpc
+package com.portfolio.grpc.upload
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class GrpcServerConnectApplication
+class UploadClientApplication
 
 fun main(args: Array<String>) {
-    runApplication<GrpcServerConnectApplication>(*args)
+    runApplication<UploadClientApplication>(*args)
 }

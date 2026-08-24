@@ -1,0 +1,90 @@
+# gRPC Server Connect
+
+Kotlin + Spring Boot 환경에서 gRPC 통신 구조를 익히기 위한 학습용 저장소.
+완전히 분리된 두 개의 Spring Boot 프로세스(`upload-server`, `upload-client`)가 **Client Streaming** RPC로 파일을 주고받는 최소 구현을 담고 있다.
+
+## 개요
+
+- 클라이언트가 파일을 청크 단위로 스트리밍 전송 → 서버가 모든 청크를 받은 뒤 응답 1개를 반환하는 **Client Streaming** 예제
+- 하나의 Git 저장소 안에 독립된 두 개의 Gradle 프로젝트를 두어, 서버/클라이언트가 서로 다른 프로세스·포트에서 실제 네트워크(HTTP/2)로 통신하는 것을 확인하는 데 목적이 있음
+- `.proto`로 정의한 계약을 양쪽 프로젝트가 각자 코드 생성하여 사용
+
+## 기술 스택
+
+| 분류 | 기술 |
+|---|---|
+| 언어 | Kotlin 1.9.25 |
+| 프레임워크 | Spring Boot 3.3.4 |
+| 통신 | gRPC 1.63.0 (HTTP/2 + Protobuf) |
+| gRPC-Spring 통합 | `net.devh:grpc-spring-boot-starter` 3.1.0.RELEASE (`@GrpcService`, `@GrpcClient`) |
+| Kotlin gRPC | `grpc-kotlin-stub` 1.4.1 (코루틴 기반 stub) |
+| 직렬화 | Protocol Buffers 3.25.3 |
+| 빌드 | Gradle 8.10.2 (Kotlin DSL, `com.google.protobuf` 플러그인) |
+| 런타임 | JDK 17 |
+
+## 프로젝트 구조
+
+```
+gRPC-server-connect/
+├── upload-server/          # 독립 Gradle 프로젝트 — gRPC 서버
+│   └── src/main/
+│       ├── proto/file_upload.proto
+│       ├── kotlin/com/portfolio/grpc/upload/
+│       │   ├── UploadServerApplication.kt
+│       │   └── server/FileUploadServiceImpl.kt
+│       └── resources/application.yml   (grpc.server.port: 9090)
+└── upload-client/          # 독립 Gradle 프로젝트 — gRPC 클라이언트
+    └── src/main/
+        ├── proto/file_upload.proto      (upload-server와 동일 파일)
+        ├── kotlin/com/portfolio/grpc/upload/
+        │   ├── UploadClientApplication.kt
+        │   └── client/FileUploadClientRunner.kt
+        └── resources/
+            ├── application.yml           (server.port: 8081, grpc.client 주소: localhost:9090)
+            └── sample.txt                (업로드 테스트용 더미 파일)
+```
+
+두 프로젝트는 각자 `gradlew`/`build.gradle.kts`를 가진 완전히 독립된 Gradle 프로젝트이며, `src/main/proto/file_upload.proto`만 서로 동일한 내용을 유지해야 한다.
+
+## 기능 목록
+
+- [x] `.proto` 기반 서비스 계약 정의 (`FileUploadService.UploadFile`)
+- [x] Client Streaming RPC — 클라이언트가 파일을 청크(`bytes`)로 스트리밍 전송
+- [x] `oneof`로 스트림 내 메타데이터(`FileInfo`)와 데이터(`chunk`)를 구분
+- [x] 서버가 전체 청크 수신 후 디스크에 파일 저장, 결과(`success`, `message`, `size`) 응답
+- [x] 서버/클라이언트를 별도 프로세스·별도 포트로 기동해 실제 네트워크 통신 확인
+- [ ] Unary / Server Streaming / Bidirectional Streaming 예제 추가
+- [ ] 에러 케이스(빈 파일, 대용량 파일, 커넥션 끊김) 처리
+
+## 실행 방법
+
+터미널 두 개를 열어 각각 실행한다.
+
+```bash
+# 터미널 1 — 서버 (포트 9090)
+cd upload-server
+./gradlew.bat bootRun
+
+# 터미널 2 — 클라이언트 (서버가 뜬 후 실행)
+cd upload-client
+./gradlew.bat bootRun
+```
+
+클라이언트 로그에 아래와 같이 출력되면 성공이다.
+
+```
+>>> gRPC upload response: success=true, message=Uploaded sample.txt, size=255
+```
+
+서버 쪽에는 `upload-server/uploads/sample.txt`가 실제로 생성된다.
+
+## 코딩 컨벤션
+
+- **패키지 구조**: `com.portfolio.grpc.upload` 하위에 `server`, `client` 서브패키지로 역할을 분리한다. 도메인이 늘어나면 `com.portfolio.grpc.<domain>` 단위로 프로젝트/패키지를 새로 추가한다.
+- **proto 파일**: 파일명은 서비스 도메인을 그대로 사용(`file_upload.proto`). `option java_multiple_files = true`로 메시지별 파일을 분리 생성하고, `java_package`는 Kotlin 패키지와 동일하게 맞춘다.
+- **stub/서비스 명명**: `.proto`의 `service` 이름은 `XxxService`, 서버 구현체는 `XxxServiceImpl`로 통일한다.
+- **코루틴 우선**: 블로킹/Async stub 대신 `grpc-kotlin-stub`의 코루틴 stub(`suspend fun`, `Flow`)을 기본으로 사용한다.
+- **서버 설정**: `@GrpcService`가 붙은 구현체 하나당 파일 하나. 포트 등 설정은 코드에 하드코딩하지 않고 `application.yml`의 `grpc.*` 프로퍼티로 관리한다.
+- **클라이언트 프로젝트에서 내장 gRPC 서버 비활성화**: `net.devh:grpc-spring-boot-starter`는 서버 기능을 기본 포함하므로, 순수 클라이언트 프로젝트에서는 `application.yml`에 `grpc.server.port: -1`을 명시해 포트 충돌을 막는다.
+- **버전 고정**: `grpc-spring-boot-starter`가 기대하는 grpc 버전과 직접 명시하는 grpc 계열 의존성(`grpc-protobuf`, `grpc-kotlin-stub` 등) 버전을 반드시 맞춘다. 어긋나면 `ClassNotFoundException` 등 런타임 오류로 나타난다.
+- **커밋 단위**: 도메인/구조 변경(예: 프로젝트 분리, 도메인 교체)과 기능 구현은 가능하면 커밋을 분리한다.

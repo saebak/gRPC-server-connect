@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.portfolio.grpc.upload";
+
+package upload;
+
+service FileUploadService {
+  rpc UploadFile (stream UploadRequest) returns (UploadResponse);
+}
+
+message UploadRequest {
+  oneof payload {
+    FileInfo info = 1;
+    bytes chunk = 2;
+  }
+}
+
+message FileInfo {
+  string filename = 1;
+}
+
+message UploadResponse {
+  bool success = 1;
+  string message = 2;
+  int64 size = 3;
+}
