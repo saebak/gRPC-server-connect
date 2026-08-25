@@ -1,6 +1,7 @@
 package com.saebak.upload.client
 
 import com.google.protobuf.ByteString
+import com.saebak.upload.DownloadRequest
 import com.saebak.upload.FileInfo
 import com.saebak.upload.FileUploadServiceGrpcKt
 import com.saebak.upload.UploadRequest
@@ -10,6 +11,7 @@ import net.devh.boot.grpc.client.inject.GrpcClient
 import org.springframework.boot.CommandLineRunner
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.io.ByteArrayOutputStream
 
 @Component
 class FileUploadClientRunner(
@@ -43,5 +45,13 @@ class FileUploadClientRunner(
 
         val response = stub.uploadFile(requests)
         println(">>> gRPC upload response: success=${response.success}, message=${response.message}, size=${response.size}")
+
+        val downloaded = ByteArrayOutputStream()
+        stub.downloadFile(DownloadRequest.newBuilder().setFilename(filename).build())
+            .collect { fileChunk -> downloaded.write(fileChunk.chunk.toByteArray()) }
+
+        val original = resource.inputStream.use { it.readBytes() }
+        val matches = downloaded.toByteArray().contentEquals(original)
+        println(">>> gRPC download response: downloaded ${downloaded.size()} bytes, matchesOriginal=$matches")
     }
 }

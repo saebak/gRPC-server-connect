@@ -7,6 +7,7 @@ package upload;
 
 service FileUploadService {
   rpc UploadFile (stream UploadRequest) returns (UploadResponse);
+  rpc DownloadFile (DownloadRequest) returns (stream FileChunk);
 }
 
 message UploadRequest {
@@ -24,4 +25,12 @@ message UploadResponse {
   bool success = 1;
   string message = 2;
   int64 size = 3;
+}
+
+message DownloadRequest {
+  string filename = 1;
+}
+
+message FileChunk {
+  bytes chunk = 1;
 }
