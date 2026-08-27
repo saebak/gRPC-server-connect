@@ -38,7 +38,9 @@ gRPC-server-connect/
         ├── proto/file_upload.proto      (upload-server와 동일 파일)
         ├── kotlin/com/saebak/upload/
         │   ├── UploadClientApplication.kt
-        │   └── client/FileUploadClientRunner.kt
+        │   └── client/
+        │       ├── FileUploadClient.kt        (stub 호출 + 상태 코드별 에러 처리)
+        │       └── FileUploadClientRunner.kt  (데모 실행 진입점)
         └── resources/
             ├── application.yml           (server.port: 8081, grpc.client 주소: localhost:9090)
             └── sample.txt                (업로드 테스트용 더미 파일)
@@ -55,6 +57,7 @@ gRPC-server-connect/
 - `oneof`로 업로드 스트림 내 메타데이터(`FileInfo`)와 데이터(`chunk`)를 구분
 - 서버/클라이언트를 별도 프로세스·별도 포트로 기동해 실제 네트워크(HTTP/2) 통신 확인
 - 에러 케이스 처리 — 빈 파일명(`INVALID_ARGUMENT`), 순서 위반(`FAILED_PRECONDITION`), 크기 초과(`RESOURCE_EXHAUSTED`), 존재하지 않는 파일(`NOT_FOUND`), 커넥션 끊김 시 부분 파일 정리, 경로 탈출 방지
+- 클라이언트 `FileUploadClient`가 stub 호출을 감싸 gRPC 상태 코드별로 실패 사유를 출력하고, 예외 대신 `null`을 반환해 호출부가 반복적인 try/catch 없이 실패를 처리
 
 ## 실행 방법
 
