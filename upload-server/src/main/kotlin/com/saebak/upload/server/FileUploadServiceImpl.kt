@@ -3,7 +3,10 @@ package com.saebak.upload.server
 import com.google.protobuf.ByteString
 import com.saebak.upload.DownloadRequest
 import com.saebak.upload.FileChunk
+import com.saebak.upload.FileEntry
 import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.ListFilesRequest
+import com.saebak.upload.ListFilesResponse
 import com.saebak.upload.UploadRequest
 import com.saebak.upload.UploadResponse
 import io.grpc.Status
@@ -109,6 +112,15 @@ class FileUploadServiceImpl(
                 emit(FileChunk.newBuilder().setChunk(ByteString.copyFrom(buffer, 0, bytesRead)).build())
             }
         }
+    }
+
+    override suspend fun listFiles(request: ListFilesRequest): ListFilesResponse {
+        val files = uploadDir.listFiles { file -> file.isFile }
+            ?.sortedBy { it.name }
+            ?.map { file -> FileEntry.newBuilder().setFilename(file.name).setSize(file.length()).build() }
+            ?: emptyList()
+
+        return ListFilesResponse.newBuilder().addAllFiles(files).build()
     }
 
     /**

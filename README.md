@@ -51,6 +51,7 @@ gRPC-server-connect/
 - `.proto` 기반 서비스 계약 정의 (`FileUploadService`)
 - Client Streaming — `UploadFile`: 클라이언트가 파일을 청크(`bytes`)로 스트리밍 전송하면 서버가 전체 수신 후 디스크에 저장하고 결과(`success`, `message`, `size`)를 응답
 - Server Streaming — `DownloadFile`: 클라이언트 요청 1개에 서버가 저장된 파일을 청크 스트림으로 응답
+- Unary — `ListFiles`: 요청/응답이 각각 1개씩인 기본 RPC. `uploadDir`에 저장된 파일들의 이름·크기 목록을 반환
 - `oneof`로 업로드 스트림 내 메타데이터(`FileInfo`)와 데이터(`chunk`)를 구분
 - 서버/클라이언트를 별도 프로세스·별도 포트로 기동해 실제 네트워크(HTTP/2) 통신 확인
 - 에러 케이스 처리 — 빈 파일명(`INVALID_ARGUMENT`), 순서 위반(`FAILED_PRECONDITION`), 크기 초과(`RESOURCE_EXHAUSTED`), 존재하지 않는 파일(`NOT_FOUND`), 커넥션 끊김 시 부분 파일 정리, 경로 탈출 방지
@@ -73,6 +74,7 @@ cd upload-client
 
 ```
 >>> gRPC upload response: success=true, message=Uploaded sample.txt, size=255
+>>> gRPC list response: sample.txt(255B)
 >>> gRPC download response: downloaded 255 bytes, matchesOriginal=true
 ```
 

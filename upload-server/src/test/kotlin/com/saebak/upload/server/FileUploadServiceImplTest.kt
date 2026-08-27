@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString
 import com.saebak.upload.DownloadRequest
 import com.saebak.upload.FileInfo
 import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.ListFilesRequest
 import com.saebak.upload.UploadRequest
 import com.saebak.upload.UploadResponse
 import io.grpc.ManagedChannel
@@ -232,6 +233,24 @@ class FileUploadServiceImplTest {
         }
 
         assertEquals(Status.Code.INVALID_ARGUMENT, Status.fromThrowable(exception).code)
+    }
+
+    @Test
+    fun `업로드된 파일이 없으면 빈 목록을 반환한다`() = runBlocking {
+        val response = stub.listFiles(ListFilesRequest.newBuilder().build())
+
+        assertTrue(response.filesList.isEmpty())
+    }
+
+    @Test
+    fun `업로드된 파일들의 이름과 크기를 이름순으로 반환한다`() = runBlocking {
+        upload("b.txt", "second".toByteArray(), chunkSize = 4)
+        upload("a.txt", "first".toByteArray(), chunkSize = 4)
+
+        val response = stub.listFiles(ListFilesRequest.newBuilder().build())
+
+        assertEquals(listOf("a.txt", "b.txt"), response.filesList.map { it.filename })
+        assertEquals(listOf(5L, 6L), response.filesList.map { it.size })
     }
 
     private suspend fun upload(filename: String, content: ByteArray, chunkSize: Int): UploadResponse =

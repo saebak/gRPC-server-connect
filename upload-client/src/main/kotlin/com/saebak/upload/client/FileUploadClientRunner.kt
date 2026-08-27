@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString
 import com.saebak.upload.DownloadRequest
 import com.saebak.upload.FileInfo
 import com.saebak.upload.FileUploadServiceGrpcKt
+import com.saebak.upload.ListFilesRequest
 import com.saebak.upload.UploadRequest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
@@ -45,6 +46,9 @@ class FileUploadClientRunner(
 
         val response = stub.uploadFile(requests)
         println(">>> gRPC upload response: success=${response.success}, message=${response.message}, size=${response.size}")
+
+        val listResponse = stub.listFiles(ListFilesRequest.newBuilder().build())
+        println(">>> gRPC list response: ${listResponse.filesList.joinToString { "${it.filename}(${it.size}B)" }}")
 
         val downloaded = ByteArrayOutputStream()
         stub.downloadFile(DownloadRequest.newBuilder().setFilename(filename).build())
