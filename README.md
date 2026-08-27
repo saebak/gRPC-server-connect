@@ -1,6 +1,6 @@
 # gRPC Server Connect
 
-Kotlin + Spring Boot 환경에서 gRPC 통신 구조를 익히기 위한 학습용 저장소.
+Kotlin + Spring Boot 기반 gRPC 파일 전송 서비스.
 완전히 분리된 두 개의 Spring Boot 프로세스(`upload-server`, `upload-client`)가 **Unary / Client Streaming / Server Streaming** 세 가지 RPC 패턴으로 파일을 주고받는 구현을 담고 있다.
 
 ## 개요
@@ -42,7 +42,7 @@ gRPC-server-connect/
         │   ├── UploadClientApplication.kt
         │   └── client/
         │       ├── FileUploadClient.kt        (stub 호출 + 상태 코드별 에러 처리)
-        │       └── FileUploadClientRunner.kt  (데모 실행 진입점)
+        │       └── FileUploadClientRunner.kt  (실행 진입점)
         └── resources/
             ├── application.yml           (server.port: 8081, grpc.client 주소: localhost:9090)
             └── sample.txt                (업로드 테스트용 더미 파일)
