@@ -1,11 +1,13 @@
 # gRPC Server Connect
 
 Kotlin + Spring Boot 환경에서 gRPC 통신 구조를 익히기 위한 학습용 저장소.
-완전히 분리된 두 개의 Spring Boot 프로세스(`upload-server`, `upload-client`)가 **Client Streaming** RPC로 파일을 주고받는 최소 구현을 담고 있다.
+완전히 분리된 두 개의 Spring Boot 프로세스(`upload-server`, `upload-client`)가 **Unary / Client Streaming / Server Streaming** 세 가지 RPC 패턴으로 파일을 주고받는 구현을 담고 있다.
 
 ## 개요
 
-- 클라이언트가 파일을 청크 단위로 스트리밍 전송 → 서버가 모든 청크를 받은 뒤 응답 1개를 반환하는 **Client Streaming** 예제
+- 클라이언트가 파일을 청크 단위로 스트리밍 전송 → 서버가 모든 청크를 받은 뒤 응답 1개를 반환하는 **Client Streaming**(`UploadFile`) 예제
+- 요청 1개에 서버가 저장된 파일을 청크로 스트리밍 응답하는 **Server Streaming**(`DownloadFile`) 예제
+- 요청/응답이 각각 1개씩인 **Unary**(`ListFiles`) 예제
 - 하나의 Git 저장소 안에 독립된 두 개의 Gradle 프로젝트를 두어, 서버/클라이언트가 서로 다른 프로세스·포트에서 실제 네트워크(HTTP/2)로 통신하는 것을 확인하는 데 목적이 있음
 - `.proto`로 정의한 계약을 양쪽 프로젝트가 각자 코드 생성하여 사용
 
@@ -93,3 +95,14 @@ cd upload-client
 - **클라이언트 프로젝트에서 내장 gRPC 서버 비활성화**: `net.devh:grpc-spring-boot-starter`는 서버 기능을 기본 포함하므로, 순수 클라이언트 프로젝트에서는 `application.yml`에 `grpc.server.port: -1`을 명시해 포트 충돌을 막는다.
 - **버전 고정**: `grpc-spring-boot-starter`가 기대하는 grpc 버전과 직접 명시하는 grpc 계열 의존성(`grpc-protobuf`, `grpc-kotlin-stub` 등) 버전을 반드시 맞춘다. 어긋나면 `ClassNotFoundException` 등 런타임 오류로 나타난다.
 - **커밋 단위**: 도메인/구조 변경(예: 프로젝트 분리, 도메인 교체)과 기능 구현은 가능하면 커밋을 분리한다.
+
+## 문서
+
+- [`docs/test-report.md`](docs/test-report.md) — 최근 테스트 실행 결과(성능 수치 포함)와 재현 방법
+- [`docs/test-cases.md`](docs/test-cases.md) — 서버/클라이언트 전체 테스트 케이스 명세(사전 조건·기대 결과)
+- [`docs/refactoring-notes.md`](docs/refactoring-notes.md) — `FileUploadServiceImpl` 리팩토링 기록
+
+## 다음 단계 (미구현)
+
+- Bidirectional Streaming 예제 추가 — 4가지 gRPC 패턴 중 유일하게 빠져 있음
+- TLS, 인터셉터(로깅/인증), `grpc-health` 헬스체크 등 운영 관점 보강
