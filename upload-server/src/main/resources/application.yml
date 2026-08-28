@@ -10,3 +10,8 @@ grpc:
       enabled: true
       certificate-chain: file:certs/server.crt
       private-key: file:certs/server.key
+
+upload:
+  # 데모용 고정 인증 토큰. 서버/클라이언트가 같은 값을 공유해야 한다.
+  auth:
+    token: dev-secret-token

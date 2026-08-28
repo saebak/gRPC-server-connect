@@ -16,3 +16,7 @@ grpc:
       security:
         trust-cert-collection: file:certs/server.crt
         authority-override: localhost
+
+upload:
+  auth:
+    token: dev-secret-token
