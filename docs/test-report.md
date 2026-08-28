@@ -4,15 +4,17 @@
 
 | 항목 | upload-server | upload-client |
 |---|---|---|
-| 테스트 클래스 | `FileUploadServiceImplTest` | `FileUploadClientTest` |
-| 실행 방식 | in-process gRPC (`InProcessServerBuilder`/`InProcessChannelBuilder`) — 소켓 없이 실제 stub → service 직렬화·스트림 경로를 그대로 태움 | 동일. 서버 역할은 `FakeFileUploadService`(테스트 전용 더미 구현)가 대신함 — 두 프로젝트가 독립 Gradle 프로젝트라 실제 `FileUploadServiceImpl`을 참조할 수 없기 때문 |
-| 테스트 수 | 12 | 6 |
-| 결과 | **12 passed / 0 failed** | **6 passed / 0 failed** |
-| 총 소요 시간 | 4.194s | 0.984s |
+| 테스트 클래스 | `FileUploadServiceImplTest`, `GrpcOpsTest`, `TlsIntegrationTest` | `FileUploadClientTest`, `AuthClientInterceptorTest` |
+| 실행 방식 | 대부분 in-process gRPC (`InProcessServerBuilder`/`InProcessChannelBuilder`) — 소켓 없이 실제 stub → service 직렬화·스트림 경로를 그대로 태움. `TlsIntegrationTest`만 실제 TCP 소켓(`NettyServerBuilder`) 사용 | in-process gRPC. 서버 역할은 `FakeFileUploadService`(테스트 전용 더미 구현)가 대신함 — 두 프로젝트가 독립 Gradle 프로젝트라 실제 `FileUploadServiceImpl`을 참조할 수 없기 때문 |
+| 테스트 수 | 17 (12 + 4 + 1) | 7 (6 + 1) |
+| 결과 | **17 passed / 0 failed** | **7 passed / 0 failed** |
+| 총 소요 시간 | 약 4.4s | 약 0.7s |
 | 실행 환경 | Windows, JDK 17.0.20 (Temurin), Gradle 8.10.2, hostname `LAPTOP-I1SV7QJJ` | 동일 |
 | 실행 명령 | `./gradlew.bat test --rerun` (upload-server) | `./gradlew.bat test --rerun` (upload-client) |
 
 케이스별 목적과 검증 내용은 [`docs/test-cases.md`](test-cases.md) 참고.
+
+> `TlsIntegrationTest`는 `upload-server/certs/`의 자체 서명 인증서를 사용한다. 인증서가 없으면(`scripts/gen-certs.sh` 미실행) `Assumptions.assumeTrue`로 **skip** 처리되며 실패로 잡히지 않는다.
 
 ## 성능 테스트 상세 (upload-server)
 
@@ -35,15 +37,20 @@
 2. `upload-client`를 별도 프로세스(포트 8081)로 기동 — 기동 시 `sample.txt`를 청크로 스트리밍 업로드 → 목록 조회 → 다운로드 순으로 실행
 3. 클라이언트 로그:
    ```
+   >>> gRPC health response: upload.FileUploadService=SERVING
    >>> gRPC upload response: success=true, message=Uploaded sample.txt, size=255
    >>> gRPC list response: sample.txt(255B)
    >>> gRPC download response: downloaded 255 bytes, matchesOriginal=true
    ```
-4. 서버에 저장된 `upload-server/uploads/sample.txt`가 원본과 바이트 단위로 동일함을 `diff`로 확인
+4. 서버 로그에 `LoggingServerInterceptor`가 각 RPC의 `--> ` / `<-- ... OK (n ms)` 를 남기고, 클라이언트→서버 통신이 TLS로 이뤄짐(`negotiation-type: TLS`, 자체 서명 인증서 신뢰)
+5. 서버에 저장된 `upload-server/uploads/sample.txt`가 원본과 바이트 단위로 동일함을 `diff`로 확인
 
 ## 재현 방법
 
 ```bash
+# (최초 1회) TLS 테스트용 인증서 생성
+./scripts/gen-certs.sh
+
 # upload-server 단위/성능 테스트
 cd upload-server
 ./gradlew.bat test --rerun
@@ -60,4 +67,7 @@ cd upload-client && ./gradlew.bat bootRun    # 터미널 2 (서버가 뜬 후)
 테스트 결과 원본 XML은 빌드 산출물이라 Git에는 포함하지 않음, 로컬에서 `./gradlew test` 실행 시 아래 경로에 재생성됨:
 
 - `upload-server/build/test-results/test/TEST-com.saebak.upload.server.FileUploadServiceImplTest.xml`
+- `upload-server/build/test-results/test/TEST-com.saebak.upload.server.GrpcOpsTest.xml`
+- `upload-server/build/test-results/test/TEST-com.saebak.upload.server.TlsIntegrationTest.xml`
 - `upload-client/build/test-results/test/TEST-com.saebak.upload.client.FileUploadClientTest.xml`
+- `upload-client/build/test-results/test/TEST-com.saebak.upload.client.AuthClientInterceptorTest.xml`
