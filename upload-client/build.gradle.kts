@@ -36,6 +36,9 @@ dependencies {
     implementation("io.grpc:grpc-protobuf:$grpcVersion")
     implementation("com.google.protobuf:protobuf-kotlin:$protobufVersion")
 
+    // grpc.health.v1.Health stub — 클라이언트가 서버 헬스 상태를 조회하는 데 사용
+    implementation("io.grpc:grpc-services:$grpcVersion")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 

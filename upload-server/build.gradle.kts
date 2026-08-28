@@ -36,11 +36,16 @@ dependencies {
     implementation("io.grpc:grpc-protobuf:$grpcVersion")
     implementation("com.google.protobuf:protobuf-kotlin:$protobufVersion")
 
+    // grpc.health.v1.Health 표준 헬스체크 서비스 (grpc-spring-boot-starter가 classpath에 있으면 자동 등록)
+    implementation("io.grpc:grpc-services:$grpcVersion")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.grpc:grpc-testing:$grpcVersion")
+    // 실제 소켓 위에서 TLS 핸드셰이크를 검증하는 통합 테스트용
+    testImplementation("io.grpc:grpc-netty:$grpcVersion")
 }
 
 protobuf {
