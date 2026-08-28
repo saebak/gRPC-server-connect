@@ -8,8 +8,12 @@ import io.grpc.Metadata
 import io.grpc.Server
 import io.grpc.ServerInterceptors
 import io.grpc.Status
+import io.grpc.health.v1.HealthCheckRequest
+import io.grpc.health.v1.HealthCheckResponse.ServingStatus
+import io.grpc.health.v1.HealthGrpc
 import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
+import io.grpc.protobuf.services.HealthStatusManager
 import io.grpc.stub.MetadataUtils
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
@@ -23,7 +27,7 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
- * 운영용 인증 인터셉터를 in-process gRPC 경로에서 검증한다.
+ * 운영용 인터셉터(인증)와 grpc.health.v1.Health 서비스를 in-process gRPC 경로에서 검증한다.
  * TLS는 소켓이 필요하므로 별도 TlsIntegrationTest에서 확인한다.
  */
 class GrpcOpsTest {
@@ -39,6 +43,9 @@ class GrpcOpsTest {
     @BeforeEach
     fun setUp() {
         val name = InProcessServerBuilder.generateName()
+        val health = HealthStatusManager().apply {
+            setStatus("upload.FileUploadService", ServingStatus.SERVING)
+        }
         server = InProcessServerBuilder.forName(name)
             .directExecutor()
             .addService(
@@ -47,6 +54,7 @@ class GrpcOpsTest {
                     AuthServerInterceptor(token),
                 )
             )
+            .addService(ServerInterceptors.intercept(health.healthService, AuthServerInterceptor(token)))
             .build()
             .start()
         channel = InProcessChannelBuilder.forName(name).directExecutor().build()
@@ -96,5 +104,13 @@ class GrpcOpsTest {
         }
 
         assertEquals(Status.Code.UNAUTHENTICATED, Status.fromThrowable(exception).code)
+    }
+
+    @Test
+    fun `헬스체크는 토큰 없이도 SERVING을 반환한다`() {
+        val response = HealthGrpc.newBlockingStub(channel)
+            .check(HealthCheckRequest.newBuilder().setService("upload.FileUploadService").build())
+
+        assertEquals(ServingStatus.SERVING, response.status)
     }
 }
