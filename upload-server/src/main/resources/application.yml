@@ -5,3 +5,8 @@ spring:
 grpc:
   server:
     port: 9090
+    # TLS: scripts/gen-certs.sh 로 생성한 자체 서명 인증서. 파일이 없으면 기동 실패한다.
+    security:
+      enabled: true
+      certificate-chain: file:certs/server.crt
+      private-key: file:certs/server.key

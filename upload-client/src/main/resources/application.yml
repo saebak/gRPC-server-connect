@@ -11,4 +11,8 @@ grpc:
   client:
     upload-service:
       address: static://localhost:9090
-      negotiation-type: plaintext
+      # TLS: 서버 인증서를 신뢰 앵커로 지정한다. 자체 서명이라 CA 체인이 없으므로 서버 인증서 자체를 신뢰.
+      negotiation-type: TLS
+      security:
+        trust-cert-collection: file:certs/server.crt
+        authority-override: localhost

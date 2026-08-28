@@ -8,6 +8,10 @@ build/
 ### App runtime output ###
 upload-server/uploads/
 
+### TLS 인증서 (로컬 생성물 — scripts/gen-certs.sh로 재생성) ###
+upload-server/certs/
+upload-client/certs/
+
 ### STS ###
 .apt_generated
 .classpath
