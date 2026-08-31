@@ -70,6 +70,9 @@ class FileUploadClient(
             Status.Code.INVALID_ARGUMENT -> "요청이 올바르지 않습니다"
             Status.Code.RESOURCE_EXHAUSTED -> "허용된 크기를 초과했습니다"
             Status.Code.FAILED_PRECONDITION -> "요청 순서가 올바르지 않습니다"
+            Status.Code.UNAUTHENTICATED -> "인증 정보가 없거나 올바르지 않습니다"
+            Status.Code.PERMISSION_DENIED -> "요청을 수행할 권한이 없습니다"
+            Status.Code.DEADLINE_EXCEEDED -> "요청 시간이 초과되었습니다"
             Status.Code.UNAVAILABLE -> "서버에 연결할 수 없습니다"
             else -> "알 수 없는 오류가 발생했습니다"
         }

@@ -17,6 +17,9 @@ import net.devh.boot.grpc.server.service.GrpcService
 import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 @GrpcService
 class FileUploadServiceImpl(
@@ -36,9 +39,18 @@ class FileUploadServiceImpl(
     private val uploadDir = File(uploadDirPath).apply { mkdirs() }
     private val downloadChunkSize = 64 * 1024
 
-    /** 업로드 스트림 하나의 진행 상태(대상 파일, 열린 출력 스트림, 누적 크기)를 한데 묶는다. */
-    private class UploadSession(val file: File) {
-        private val output = FileOutputStream(file)
+    /**
+     * 업로드 중에는 같은 디렉터리의 임시 파일만 변경한다. 스트림을 끝까지 받은 뒤에만 최종 경로로
+     * 교체하므로, 실패한 재업로드가 기존 정상 파일을 훼손하거나 부분 파일을 노출하지 않는다.
+     */
+    private class UploadSession(private val targetFile: File) {
+        private val temporaryFile = Files.createTempFile(
+            targetFile.parentFile.toPath(),
+            ".upload-",
+            ".part",
+        ).toFile()
+        private val output = FileOutputStream(temporaryFile)
+        private var closed = false
         var size: Long = 0
             private set
 
@@ -47,7 +59,43 @@ class FileUploadServiceImpl(
             size += bytes.size
         }
 
-        fun close() = output.close()
+        fun commit() {
+            close()
+            try {
+                Files.move(
+                    temporaryFile.toPath(),
+                    targetFile.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING,
+                )
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(
+                    temporaryFile.toPath(),
+                    targetFile.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                )
+            }
+        }
+
+        fun discard(cause: Throwable) {
+            try {
+                close()
+            } catch (cleanupError: Exception) {
+                cause.addSuppressed(cleanupError)
+            }
+            try {
+                Files.deleteIfExists(temporaryFile.toPath())
+            } catch (cleanupError: Exception) {
+                cause.addSuppressed(cleanupError)
+            }
+        }
+
+        private fun close() {
+            if (!closed) {
+                output.close()
+                closed = true
+            }
+        }
     }
 
     override suspend fun uploadFile(requests: Flow<UploadRequest>): UploadResponse {
@@ -58,6 +106,11 @@ class FileUploadServiceImpl(
             requests.collect { request ->
                 when (request.payloadCase) {
                     UploadRequest.PayloadCase.INFO -> {
+                        if (session != null) {
+                            throw StatusException(
+                                Status.FAILED_PRECONDITION.withDescription("file info must be sent exactly once")
+                            )
+                        }
                         val name = request.info.filename
                         val file = resolveWithinUploadDir(name)
                             ?: throw StatusException(Status.INVALID_ARGUMENT.withDescription("invalid filename: $name"))
@@ -82,12 +135,16 @@ class FileUploadServiceImpl(
             }
         } catch (e: Exception) {
             // 커넥션이 끊기거나(취소) 검증에 실패한 경우, 반쪽짜리 파일을 디스크에 남기지 않는다
-            session?.close()
-            session?.file?.delete()
+            session?.discard(e)
             throw e
         }
 
-        session?.close()
+        try {
+            session?.commit()
+        } catch (e: Exception) {
+            session?.discard(e)
+            throw e
+        }
 
         return UploadResponse.newBuilder()
             .setSuccess(filename != null)

@@ -103,6 +103,33 @@ class FileUploadServiceImplTest {
     }
 
     @Test
+    fun `FileInfo를 두 번 보내면 FAILED_PRECONDITION을 반환하고 부분 파일을 정리한다`() {
+        val exception = assertThrows(Exception::class.java) {
+            runBlocking {
+                stub.uploadFile(
+                    flow {
+                        emit(
+                            UploadRequest.newBuilder()
+                                .setInfo(FileInfo.newBuilder().setFilename("first.txt").build())
+                                .build()
+                        )
+                        emit(UploadRequest.newBuilder().setChunk(ByteString.copyFromUtf8("partial")).build())
+                        emit(
+                            UploadRequest.newBuilder()
+                                .setInfo(FileInfo.newBuilder().setFilename("second.txt").build())
+                                .build()
+                        )
+                    }
+                )
+            }
+        }
+
+        assertEquals(Status.Code.FAILED_PRECONDITION, Status.fromThrowable(exception).code)
+        assertTrue(!File(tempDir, "first.txt").exists())
+        assertTrue(!File(tempDir, "second.txt").exists())
+    }
+
+    @Test
     fun `빈 파일명으로 업로드하면 INVALID_ARGUMENT를 반환한다`() {
         val exception = assertThrows(Exception::class.java) {
             runBlocking {
@@ -178,6 +205,52 @@ class FileUploadServiceImplTest {
         } finally {
             stopInProcess(limitedServer, limitedChannel)
         }
+    }
+
+    @Test
+    fun `실패한 재업로드는 기존 정상 파일을 보존하고 임시 파일을 정리한다`() {
+        val target = File(tempDir, "existing.txt")
+        val original = "original content".toByteArray()
+        target.writeBytes(original)
+        val (limitedServer, limitedChannel, limitedStub) =
+            startInProcess(FileUploadServiceImpl(tempDir.absolutePath, maxUploadBytes = 5))
+
+        try {
+            val exception = assertThrows(Exception::class.java) {
+                runBlocking {
+                    limitedStub.uploadFile(
+                        flow {
+                            emit(
+                                UploadRequest.newBuilder()
+                                    .setInfo(FileInfo.newBuilder().setFilename(target.name).build())
+                                    .build()
+                            )
+                            emit(UploadRequest.newBuilder().setChunk(ByteString.copyFromUtf8("replacement")).build())
+                        }
+                    )
+                }
+            }
+
+            assertEquals(Status.Code.RESOURCE_EXHAUSTED, Status.fromThrowable(exception).code)
+            assertEquals(original.toList(), target.readBytes().toList())
+            assertTrue(tempDir.listFiles { file -> file.name.endsWith(".part") }.isNullOrEmpty())
+        } finally {
+            stopInProcess(limitedServer, limitedChannel)
+        }
+    }
+
+    @Test
+    fun `성공한 재업로드는 기존 파일을 새 내용으로 완전히 교체한다`() = runBlocking {
+        val target = File(tempDir, "replace.txt")
+        target.writeText("old content that must disappear")
+        val replacement = "new".toByteArray()
+
+        val response = upload(target.name, replacement, chunkSize = 2)
+
+        assertTrue(response.success)
+        assertEquals(replacement.size.toLong(), response.size)
+        assertEquals(replacement.toList(), target.readBytes().toList())
+        assertTrue(tempDir.listFiles { file -> file.name.endsWith(".part") }.isNullOrEmpty())
     }
 
     @Test

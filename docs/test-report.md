@@ -4,11 +4,11 @@
 
 | 항목 | upload-server | upload-client |
 |---|---|---|
-| 테스트 클래스 | `FileUploadServiceImplTest`, `GrpcOpsTest`, `TlsIntegrationTest` | `FileUploadClientTest`, `AuthClientInterceptorTest` |
+| 테스트 클래스 | `FileUploadServiceImplTest`, `GrpcOpsTest`, `TlsIntegrationTest` | `FileUploadClientTest`, `FileUploadClientRunnerTest`, `AuthClientInterceptorTest` |
 | 실행 방식 | 대부분 in-process gRPC (`InProcessServerBuilder`/`InProcessChannelBuilder`) — 소켓 없이 실제 stub → service 직렬화·스트림 경로를 그대로 태움. `TlsIntegrationTest`만 실제 TCP 소켓(`NettyServerBuilder`) 사용 | in-process gRPC. 서버 역할은 `FakeFileUploadService`(테스트 전용 더미 구현)가 대신함 — 두 프로젝트가 독립 Gradle 프로젝트라 실제 `FileUploadServiceImpl`을 참조할 수 없기 때문 |
-| 테스트 수 | 17 (12 + 4 + 1) | 7 (6 + 1) |
-| 결과 | **17 passed / 0 failed** | **7 passed / 0 failed** |
-| 총 소요 시간 | 약 4.4s | 약 0.7s |
+| 테스트 수 | 20 (15 + 4 + 1) | 10 (7 + 2 + 1) |
+| 결과 | **20 passed / 0 failed** | **10 passed / 0 failed** |
+| 총 테스트 시간 | 약 17.8s | 약 2.7s |
 | 실행 환경 | Windows, JDK 17.0.20 (Temurin), Gradle 8.10.2, hostname `LAPTOP-I1SV7QJJ` | 동일 |
 | 실행 명령 | `./gradlew.bat test --rerun` (upload-server) | `./gradlew.bat test --rerun` (upload-client) |
 

@@ -10,10 +10,13 @@
 |---|---|---|---|
 | 1 | 업로드한 파일이 서버에 원본 그대로 저장된다 | `FileInfo("small.txt")` + 청크 8바이트씩 분할 전송 | `success=true`, 응답 `size`가 원본 크기와 일치, 디스크 파일이 원본과 바이트 단위로 동일 |
 | 2 | FileInfo 없이 chunk만 보내면 FAILED_PRECONDITION을 반환한다 | `FileInfo` 없이 `chunk`만 바로 전송 | `Status.Code.FAILED_PRECONDITION` |
+| 2-1 | FileInfo를 두 번 보내면 FAILED_PRECONDITION을 반환한다 | 첫 `FileInfo`와 일부 청크 뒤 두 번째 `FileInfo` 전송 | `Status.Code.FAILED_PRECONDITION`, 첫 번째 부분 파일과 두 번째 파일 모두 미생성 |
 | 3 | 빈 파일명으로 업로드하면 INVALID_ARGUMENT를 반환한다 | `FileInfo(filename="")` 전송 | `Status.Code.INVALID_ARGUMENT` |
 | 4 | 청크 없이 FileInfo만 보내면 크기 0인 빈 파일이 정상 업로드된다 | `FileInfo`만 보내고 `chunk`는 하나도 보내지 않음 | `success=true`, `size=0`, 디스크에 크기 0인 파일 생성 |
 | 5 | 업로드 중 커넥션이 끊기면 서버에 남은 부분 파일을 정리한다 | `FileInfo` + 일부 `chunk` 전송 후 스트림에서 예외 발생(연결 끊김 시뮬레이션) | 예외가 전파되고, 디스크에 부분 파일이 남지 않음(정리됨) |
 | 6 | 허용 크기를 초과하면 RESOURCE_EXHAUSTED를 반환하고 부분 파일을 남기지 않는다 | `maxUploadBytes=10`으로 설정한 서버에 10바이트 초과 청크 전송 | `Status.Code.RESOURCE_EXHAUSTED`, 부분 파일 미생성 |
+| 6-1 | 실패한 재업로드는 기존 파일을 보존한다 | 기존 파일과 같은 이름으로 크기 제한을 초과하는 재업로드 | 기존 내용 유지, 업로드 임시 파일 정리 |
+| 6-2 | 성공한 재업로드는 기존 파일을 완전히 교체한다 | 기존 파일과 같은 이름으로 작은 파일 재업로드 | 새 내용으로 원자적 교체, 임시 파일 정리 |
 | 7 | 대용량 파일을 다수의 청크로 스트리밍해도 허용 시간 내에 완료된다 (성능) | 20MB를 64KB씩(총 320청크) 전송 | `success=true`, 크기 일치, 5,000ms 이내 완료 |
 
 ### DownloadFile (Server Streaming)
@@ -58,6 +61,7 @@ in-process가 아니라 실제 TCP 소켓(`NettyServerBuilder`/`NettyChannelBuil
 |---|---|---|---|
 | 1 | 업로드가 성공하면 서버 응답을 그대로 반환한다 | `FakeFileUploadService.uploadResponse`에 성공 응답 세팅 | `upload()`가 해당 `UploadResponse`를 그대로 반환 |
 | 2 | 업로드가 RESOURCE_EXHAUSTED로 실패하면 예외 대신 null을 반환한다 | `FakeFileUploadService.uploadError = RESOURCE_EXHAUSTED` | `upload()`가 예외를 던지지 않고 `null` 반환 |
+| 2-1 | 인증 실패는 인증 오류로 안내한다 | `FakeFileUploadService.uploadError = UNAUTHENTICATED` | `null` 반환 및 인증 정보 오류 안내 출력 |
 | 3 | 목록 조회가 성공하면 파일 목록을 반환한다 | `FakeFileUploadService.listResponse`에 `FileEntry` 1건 세팅 | `listFiles()`가 해당 목록을 그대로 반환 |
 | 4 | 목록 조회가 실패하면 예외 대신 null을 반환한다 | `FakeFileUploadService.listError = UNAVAILABLE` | `listFiles()`가 `null` 반환 |
 | 5 | 다운로드가 성공하면 청크를 이어붙인 바이트를 반환한다 | `FakeFileUploadService.downloadChunks = ["hel", "lo"]` | `download()`가 `"hello"`를 반환 |
@@ -70,6 +74,13 @@ in-process가 아니라 실제 TCP 소켓(`NettyServerBuilder`/`NettyChannelBuil
 | # | 케이스 | 사전 조건 / 입력 | 기대 결과 |
 |---|---|---|---|
 | 7 | 인터셉터가 Bearer 토큰을 붙인다 | `AuthClientInterceptor("dev-secret-token")`로 감싼 stub으로 `listFiles()` 호출 | 서버가 수신한 `authorization` 헤더가 `Bearer dev-secret-token` |
+
+### 실행 전 헬스체크 — `FileUploadClientRunnerTest`
+
+| # | 케이스 | 사전 조건 / 입력 | 기대 결과 |
+|---|---|---|---|
+| 8 | 상태가 NOT_SERVING이면 본 작업을 시작하지 않는다 | 헬스 서비스가 `NOT_SERVING` 응답 | 업로드 stub 호출 없음 |
+| 9 | 헬스체크 호출이 실패하면 본 작업을 시작하지 않는다 | 헬스 서비스가 `UNAVAILABLE` 반환 | 업로드 stub 호출 없음 |
 
 ## 커버리지 밖 (의도적으로 남겨둔 것)
 

@@ -19,7 +19,7 @@ class FileUploadClientRunner(
     private val client = FileUploadClient(stub)
 
     override fun run(vararg args: String?): Unit = runBlocking {
-        checkHealth()
+        if (!checkHealth()) return@runBlocking
 
         val resource = ClassPathResource("sample.txt")
         val filename = resource.filename ?: "sample.txt"
@@ -37,14 +37,15 @@ class FileUploadClientRunner(
     }
 
     /** TLS 핸드셰이크 + 서버 가용성을 업로드 전에 한 번 확인한다(인증 토큰 없이 호출되는 공개 서비스). */
-    private fun checkHealth() {
+    internal fun checkHealth(): Boolean =
         try {
             val status = healthStub
                 .check(HealthCheckRequest.newBuilder().setService("upload.FileUploadService").build())
                 .status
             println(">>> gRPC health response: upload.FileUploadService=$status")
+            status == io.grpc.health.v1.HealthCheckResponse.ServingStatus.SERVING
         } catch (e: StatusRuntimeException) {
             println(">>> gRPC health check failed: ${e.status.code} - ${e.status.description}")
+            false
         }
-    }
 }

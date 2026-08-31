@@ -12,8 +12,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import java.io.ByteArrayInputStream
 import java.util.concurrent.TimeUnit
 
@@ -21,6 +25,7 @@ import java.util.concurrent.TimeUnit
  * FileUploadClient가 서버 응답/에러를 어떻게 다루는지, 실제 stub -> in-process 서버
  * 경로(직렬화 포함)를 태워 검증한다. 서버 쪽 동작은 FakeFileUploadService로 대체한다.
  */
+@ExtendWith(OutputCaptureExtension::class)
 class FileUploadClientTest {
 
     private val fakeService = FakeFileUploadService()
@@ -62,6 +67,16 @@ class FileUploadClientTest {
         val response = client.upload("a.txt", ByteArrayInputStream("abc".toByteArray()))
 
         assertNull(response)
+    }
+
+    @Test
+    fun `인증 실패는 사용자에게 인증 오류로 안내한다`(output: CapturedOutput) = runBlocking {
+        fakeService.uploadError = Status.UNAUTHENTICATED.withDescription("invalid token")
+
+        val response = client.upload("a.txt", ByteArrayInputStream("abc".toByteArray()))
+
+        assertNull(response)
+        assertTrue(output.out.contains("인증 정보가 없거나 올바르지 않습니다"))
     }
 
     @Test
